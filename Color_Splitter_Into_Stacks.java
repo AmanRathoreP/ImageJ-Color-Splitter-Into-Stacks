@@ -44,41 +44,50 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
      *           access full stack).
      */
     public void run(ImageProcessor ip) {
-        // Display dialog with color space options
+        // Create the dialog
         GenericDialog gd = new GenericDialog("Split Image Into");
-        gd.addMessage("Select color spaces to split into:");
-        gd.addCheckbox("HSV(HSB)", true);
-        gd.addCheckbox("RGB", false);
-        gd.addCheckbox("CMYK", false);
-        gd.addCheckbox("CIELAB", false);
+        gd.addMessage("Select a color space to split into:");
+
+        String[] colorSpaces = { "HSV (HSB)", "RGB", "CMYK", "CIELAB" };
+        gd.addChoice("Color Space:", colorSpaces, colorSpaces[0]); // acts like radio buttons
+        gd.addCheckbox("Show original image", true); // extra checkbox
         gd.showDialog();
 
         // Exit if user cancels the dialog
         if (gd.wasCanceled())
             return;
 
-        // Process selected color spaces
-        if (gd.getNextBoolean()) {
-            IJ.showStatus("Splitting into HSV...");
-            // TODO: Implement split_HSV(imp);
+        // Get selected color space
+        String selectedSpace = gd.getNextChoice();
+        boolean showOriginal = gd.getNextBoolean(); // checkbox for original image
+
+        // Optionally show the original image
+        if (showOriginal) {
+            new ImagePlus(imp.getTitle(), imp.getStack()).show();
         }
 
-        if (gd.getNextBoolean()) {
-            IJ.showStatus("Splitting into RGB...");
-            // TODO: Implement split_RGB(imp);
-        }
-
-        if (gd.getNextBoolean()) {
-            IJ.showStatus("Splitting into CMYK...");
-            // TODO: Implement split_CMYK(imp);
-        }
-
-        if (gd.getNextBoolean()) {
-            IJ.showStatus("Splitting into CIELAB...");
-            // TODO: Implement split_CIELAB(imp);
+        // Handle the selected color space
+        switch (selectedSpace) {
+            case "HSV (HSB)":
+                IJ.showStatus("Splitting into HSV...");
+                split_HSV(imp);
+                break;
+            case "RGB":
+                IJ.showStatus("Splitting into RGB...");
+                split_RGB(imp);
+                break;
+            case "CMYK":
+                IJ.showStatus("Splitting into CMYK...");
+                // TODO: Implement split_CMYK(imp);
+                break;
+            case "CIELAB":
+                IJ.showStatus("Splitting into CIELAB...");
+                // TODO: Implement split_CIELAB(imp);
+                break;
         }
 
         IJ.showStatus("Splitting complete.");
+
     }
 
     /**
@@ -87,7 +96,73 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
      * @param imp Input RGB image or stack.
      */
     public void split_HSV(ImagePlus imp) {
-        // TODO: Write code to split HSV
+        int w = imp.getWidth();
+        int h = imp.getHeight();
+        ImageStack hsbStack = imp.getStack();
+        ImageStack hueStack = new ImageStack(w, h);
+        ImageStack satStack = new ImageStack(w, h);
+        ImageStack brightStack = new ImageStack(w, h);
+        byte[] hue, s, b;
+        ColorProcessor cp;
+        int n = hsbStack.getSize();
+        for (int i = 1; i <= n; i++) {
+            IJ.showStatus(i + "/" + n);
+            hue = new byte[w * h];
+            s = new byte[w * h];
+            b = new byte[w * h];
+            cp = (ColorProcessor) hsbStack.getProcessor(1);
+            cp.getHSB(hue, s, b);
+            hsbStack.deleteSlice(1);
+            // System.gc();
+            hueStack.addSlice(null, hue);
+            satStack.addSlice(null, s);
+            brightStack.addSlice(null, b);
+            IJ.showProgress((double) i / n);
+        }
+        String title = imp.getTitle();
+        imp.hide();
+        new ImagePlus(title + " (Hue)", hueStack).show();
+        new ImagePlus(title + " (Saturation)", satStack).show();
+        new ImagePlus(title + " (Value i.e. Brightness)", brightStack).show();
     }
 
+    /**
+     * Splits the image into RGB channels (Red, Green, Blue).
+     * 
+     * @param imp Input RGB image or stack.
+     */
+    public void split_RGB(ImagePlus imp) {
+        int w = imp.getWidth();
+        int h = imp.getHeight();
+        ImageStack rgbStack = imp.getStack();
+        ImageStack redStack = new ImageStack(w, h);
+        ImageStack greenStack = new ImageStack(w, h);
+        ImageStack blueStack = new ImageStack(w, h);
+        byte[] r, g, b;
+        ColorProcessor cp;
+        int n = rgbStack.getSize();
+        for (int i = 1; i <= n; i++) {
+            IJ.showStatus(i + "/" + n);
+            r = new byte[w * h];
+            g = new byte[w * h];
+            b = new byte[w * h];
+            cp = (ColorProcessor) rgbStack.getProcessor(1);
+            cp.getRGB(r, g, b);
+            rgbStack.deleteSlice(1);
+            // System.gc();
+            redStack.addSlice(null, r);
+            greenStack.addSlice(null, g);
+            blueStack.addSlice(null, b);
+            IJ.showProgress((double) i / n);
+        }
+        String title = imp.getTitle();
+        try {
+            imp.hide();
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+        new ImagePlus(title + " (Red)", redStack).show();
+        new ImagePlus(title + " (Green)", greenStack).show();
+        new ImagePlus(title + " (Blue)", blueStack).show();
+    }
 }
