@@ -78,7 +78,7 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
                 break;
             case "CMYK":
                 IJ.showStatus("Splitting into CMYK...");
-                // TODO: Implement split_CMYK(imp);
+                split_CMYK(imp);
                 break;
             case "CIELAB":
                 IJ.showStatus("Splitting into CIELAB...");
@@ -165,4 +165,68 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
         new ImagePlus(title + " (Green)", greenStack).show();
         new ImagePlus(title + " (Blue)", blueStack).show();
     }
+
+    /**
+     * Splits the image into CMYK channels (Cyan, Magenta, Yellow, Black).
+     * CMYK is approximated from RGB using a standard conversion formula.
+     *
+     * @param imp Input RGB image or stack.
+     */
+    public void split_CMYK(ImagePlus imp) {
+        int w = imp.getWidth();
+        int h = imp.getHeight();
+        ImageStack rgbStack = imp.getStack();
+        ImageStack cStack = new ImageStack(w, h);
+        ImageStack mStack = new ImageStack(w, h);
+        ImageStack yStack = new ImageStack(w, h);
+        ImageStack kStack = new ImageStack(w, h);
+
+        int n = rgbStack.getSize();
+        for (int i = 1; i <= n; i++) {
+            IJ.showStatus("Processing slice " + i + "/" + n);
+            ColorProcessor cp = (ColorProcessor) rgbStack.getProcessor(1); // always get the first slice
+            int[] pixels = (int[]) cp.getPixels();
+
+            byte[] c = new byte[w * h];
+            byte[] m = new byte[w * h];
+            byte[] y = new byte[w * h];
+            byte[] k = new byte[w * h];
+
+            for (int j = 0; j < pixels.length; j++) {
+                int r = (pixels[j] >> 16) & 0xff;
+                int g = (pixels[j] >> 8) & 0xff;
+                int b = pixels[j] & 0xff;
+
+                float rf = r / 255f;
+                float gf = g / 255f;
+                float bf = b / 255f;
+
+                float kf = 1 - Math.max(rf, Math.max(gf, bf));
+                float cf = (1 - rf - kf) / (1 - kf + 1e-6f); // avoid divide by 0
+                float mf = (1 - gf - kf) / (1 - kf + 1e-6f);
+                float yf = (1 - bf - kf) / (1 - kf + 1e-6f);
+
+                c[j] = (byte) (cf * 255);
+                m[j] = (byte) (mf * 255);
+                y[j] = (byte) (yf * 255);
+                k[j] = (byte) (kf * 255);
+            }
+
+            cStack.addSlice(null, c);
+            mStack.addSlice(null, m);
+            yStack.addSlice(null, y);
+            kStack.addSlice(null, k);
+
+            rgbStack.deleteSlice(1); // remove processed slice
+            IJ.showProgress((double) i / n);
+        }
+
+        String title = imp.getTitle();
+        imp.hide();
+        new ImagePlus(title + " (Cyan)", cStack).show();
+        new ImagePlus(title + " (Magenta)", mStack).show();
+        new ImagePlus(title + " (Yellow)", yStack).show();
+        new ImagePlus(title + " (Black)", kStack).show();
+    }
+
 }
