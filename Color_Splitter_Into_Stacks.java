@@ -82,7 +82,7 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
                 break;
             case "CIELAB":
                 IJ.showStatus("Splitting into CIELAB...");
-                // TODO: Implement split_CIELAB(imp);
+                split_CIELAB(imp);
                 break;
         }
 
@@ -229,4 +229,99 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
         new ImagePlus(title + " (Black)", kStack).show();
     }
 
+    /**
+     * Splits the image into CIELAB channels (L*, a*, b*).
+     * Conversion steps:
+     * 1. Convert sRGB to linear RGB.
+     * 2. Convert linear RGB to XYZ using the D65 white reference.
+     * 3. Convert XYZ to CIELAB.
+     * 4. Map L* (0–100) to 0–255 and shift a* and b* (approx. -128 to 127) to
+     * 0–255.
+     *
+     * @param imp Input RGB image or stack.
+     */
+    public void split_CIELAB(ImagePlus imp) {
+        int w = imp.getWidth();
+        int h = imp.getHeight();
+        ImageStack rgbStack = imp.getStack();
+        ImageStack lStack = new ImageStack(w, h);
+        ImageStack aStack = new ImageStack(w, h);
+        ImageStack bStack = new ImageStack(w, h);
+        int n = rgbStack.getSize();
+
+        for (int i = 1; i <= n; i++) {
+            IJ.showStatus("Processing slice " + i + "/" + n);
+            ColorProcessor cp = (ColorProcessor) rgbStack.getProcessor(1); // always get the first slice
+            int[] pixels = (int[]) cp.getPixels();
+            byte[] lBytes = new byte[w * h];
+            byte[] aBytes = new byte[w * h];
+            byte[] bBytes = new byte[w * h];
+
+            for (int j = 0; j < pixels.length; j++) {
+                // Extract sRGB components
+                int r = (pixels[j] >> 16) & 0xff;
+                int g = (pixels[j] >> 8) & 0xff;
+                int b = pixels[j] & 0xff;
+
+                // Normalize to [0,1]
+                float rf = r / 255f;
+                float gf = g / 255f;
+                float bf = b / 255f;
+
+                // sRGB to linear RGB conversion
+                rf = (rf <= 0.04045f) ? (rf / 12.92f) : (float) Math.pow((rf + 0.055f) / 1.055f, 2.4);
+                gf = (gf <= 0.04045f) ? (gf / 12.92f) : (float) Math.pow((gf + 0.055f) / 1.055f, 2.4);
+                bf = (bf <= 0.04045f) ? (bf / 12.92f) : (float) Math.pow((bf + 0.055f) / 1.055f, 2.4);
+
+                // Convert to XYZ using D65 white reference
+                float X = 0.4124564f * rf + 0.3575761f * gf + 0.1804375f * bf;
+                float Y = 0.2126729f * rf + 0.7151522f * gf + 0.0721750f * bf;
+                float Z = 0.0193339f * rf + 0.1191920f * gf + 0.9503041f * bf;
+
+                // Normalize for D65 white point
+                float Xn = 0.95047f;
+                float Yn = 1.0f;
+                float Zn = 1.08883f;
+                float x = X / Xn;
+                float y = Y / Yn;
+                float z = Z / Zn;
+
+                // f(t) function for Lab conversion
+                float epsilon = 0.008856f; // threshold
+                float fx = (x > epsilon) ? (float) Math.pow(x, 1.0 / 3.0) : (7.787f * x + 16f / 116f);
+                float fy = (y > epsilon) ? (float) Math.pow(y, 1.0 / 3.0) : (7.787f * y + 16f / 116f);
+                float fz = (z > epsilon) ? (float) Math.pow(z, 1.0 / 3.0) : (7.787f * z + 16f / 116f);
+
+                // Compute CIELAB components
+                float L = 116 * fy - 16; // L* ranges from 0 to 100
+                float A = 500 * (fx - fy); // a* typically around -128 to 127
+                float B = 200 * (fy - fz); // b* typically around -128 to 127
+
+                // Map L* from 0-100 to 0-255, and shift a* and b* to 0-255
+                int Li = (int) Math.round(L * 255 / 100);
+                int Ai = (int) Math.round(A + 128);
+                int Bi = (int) Math.round(B + 128);
+
+                // Clamp values to 0-255
+                Li = Math.max(0, Math.min(255, Li));
+                Ai = Math.max(0, Math.min(255, Ai));
+                Bi = Math.max(0, Math.min(255, Bi));
+
+                lBytes[j] = (byte) Li;
+                aBytes[j] = (byte) Ai;
+                bBytes[j] = (byte) Bi;
+            }
+            lStack.addSlice(null, lBytes);
+            aStack.addSlice(null, aBytes);
+            bStack.addSlice(null, bBytes);
+            rgbStack.deleteSlice(1);
+            IJ.showProgress((double) i / n);
+        }
+
+        String title = imp.getTitle();
+        imp.hide();
+        new ImagePlus(title + " (L*)", lStack).show();
+        new ImagePlus(title + " (a*)", aStack).show();
+        new ImagePlus(title + " (b*)", bStack).show();
+    }
 }
