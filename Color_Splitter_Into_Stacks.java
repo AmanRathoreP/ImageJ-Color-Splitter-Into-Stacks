@@ -96,9 +96,10 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
      * @param imp Input RGB image or stack.
      */
     public void split_HSV(ImagePlus imp) {
+        ImagePlus dup = imp.duplicate();
         int w = imp.getWidth();
         int h = imp.getHeight();
-        ImageStack hsbStack = imp.getStack();
+        ImageStack hsbStack = dup.getStack();
         ImageStack hueStack = new ImageStack(w, h);
         ImageStack satStack = new ImageStack(w, h);
         ImageStack brightStack = new ImageStack(w, h);
@@ -134,9 +135,10 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
      * @param imp Input RGB image or stack.
      */
     public void split_RGB(ImagePlus imp) {
+        ImagePlus dup = imp.duplicate();
         int w = imp.getWidth();
         int h = imp.getHeight();
-        ImageStack rgbStack = imp.getStack();
+        ImageStack rgbStack = dup.getStack();
         ImageStack redStack = new ImageStack(w, h);
         ImageStack greenStack = new ImageStack(w, h);
         ImageStack blueStack = new ImageStack(w, h);
@@ -173,9 +175,10 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
      * @param imp Input RGB image or stack.
      */
     public void split_CMYK(ImagePlus imp) {
+        ImagePlus dup = imp.duplicate();
         int w = imp.getWidth();
         int h = imp.getHeight();
-        ImageStack rgbStack = imp.getStack();
+        ImageStack rgbStack = dup.getStack();
         ImageStack cStack = new ImageStack(w, h);
         ImageStack mStack = new ImageStack(w, h);
         ImageStack yStack = new ImageStack(w, h);
@@ -244,9 +247,10 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
      * @param imp Input RGB image or stack.
      */
     public void split_CIELAB(ImagePlus imp) {
+        ImagePlus dup = imp.duplicate();
         int w = imp.getWidth();
         int h = imp.getHeight();
-        ImageStack rgbStack = imp.getStack();
+        ImageStack rgbStack = dup.getStack();
         ImageStack lStack = new ImageStack(w, h);
         ImageStack aStack = new ImageStack(w, h);
         ImageStack bStack = new ImageStack(w, h);
