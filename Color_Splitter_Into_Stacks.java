@@ -21,6 +21,7 @@ import java.awt.*;
 
 public class Color_Splitter_Into_Stacks implements PlugInFilter {
     ImagePlus imp;
+    boolean show_original = false;
 
     /**
      * Called once when the plugin is initialized. Determines the type of images
@@ -59,11 +60,10 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
 
         // Get selected color space
         String selectedSpace = gd.getNextChoice();
-        boolean showOriginal = gd.getNextBoolean(); // checkbox for original image
 
         // Optionally show the original image
-        if (showOriginal) {
-            new ImagePlus(imp.getTitle(), imp.getStack()).show();
+        if (gd.getNextBoolean()) {
+            this.show_original = true;
         }
 
         // Handle the selected color space
@@ -120,7 +120,9 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
             IJ.showProgress((double) i / n);
         }
         String title = imp.getTitle();
-        imp.hide();
+        if (!(this.show_original)) {
+            imp.hide();
+        }
         new ImagePlus(title + " (Hue)", hueStack).show();
         new ImagePlus(title + " (Saturation)", satStack).show();
         new ImagePlus(title + " (Value i.e. Brightness)", brightStack).show();
@@ -156,10 +158,8 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
             IJ.showProgress((double) i / n);
         }
         String title = imp.getTitle();
-        try {
+        if (!(this.show_original)) {
             imp.hide();
-        } catch (Exception e) {
-            // TODO: handle exception
         }
         new ImagePlus(title + " (Red)", redStack).show();
         new ImagePlus(title + " (Green)", greenStack).show();
@@ -222,7 +222,10 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
         }
 
         String title = imp.getTitle();
-        imp.hide();
+        if (!(this.show_original)) {
+            imp.hide();
+        }
+        ;
         new ImagePlus(title + " (Cyan)", cStack).show();
         new ImagePlus(title + " (Magenta)", mStack).show();
         new ImagePlus(title + " (Yellow)", yStack).show();
@@ -319,7 +322,10 @@ public class Color_Splitter_Into_Stacks implements PlugInFilter {
         }
 
         String title = imp.getTitle();
-        imp.hide();
+        if (!(this.show_original)) {
+            imp.hide();
+        }
+        ;
         new ImagePlus(title + " (L*)", lStack).show();
         new ImagePlus(title + " (a*)", aStack).show();
         new ImagePlus(title + " (b*)", bStack).show();
